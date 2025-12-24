@@ -23,7 +23,6 @@ const registerSchema = z
       .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
       .regex(/[0-9]/, 'Password must contain at least one number'),
     confirmPassword: z.string(),
-    role: z.nativeEnum(Role),
   })
   .refine(data => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -44,16 +43,14 @@ const RegisterPage = () => {
     formState: { errors },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
-    defaultValues: {
-      role: Role.CUSTOMER,
-    },
   });
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
       clearError();
       const { confirmPassword, ...registerData } = data;
-      await registerUser(registerData);
+      // Always register as CUSTOMER
+      await registerUser({ ...registerData, role: Role.CUSTOMER });
       navigate('/dashboard');
     } catch (err) {
       // Error is handled by context
@@ -110,21 +107,6 @@ const RegisterPage = () => {
               leftIcon={<Phone size={18} />}
               {...register('phoneNumber')}
             />
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Role <span className="text-red-500">*</span>
-              </label>
-              <select
-                {...register('role')}
-                className="w-full px-4 py-2.5 text-gray-900 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              >
-                <option value={Role.CUSTOMER}>Customer</option>
-                <option value={Role.STAFF}>Staff</option>
-                <option value={Role.OWNER}>Owner</option>
-              </select>
-              {errors.role && <p className="text-sm text-red-600 mt-1.5">{errors.role.message}</p>}
-            </div>
 
             <FormField
               label="Password"
