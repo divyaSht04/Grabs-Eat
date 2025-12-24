@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, Lock, User, Phone, Eye, EyeOff, UserPlus } from 'lucide-react';
 import { Button, FormField } from '../../components/ui';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { Role } from '../../types/auth.types';
 
 const registerSchema = z
@@ -48,11 +48,12 @@ const RegisterPage = () => {
   const onSubmit = async (data: RegisterFormData) => {
     try {
       clearError();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { confirmPassword, ...registerData } = data;
       // Always register as CUSTOMER
       await registerUser({ ...registerData, role: Role.CUSTOMER });
       navigate('/dashboard');
-    } catch (err) {
+    } catch {
       // Error is handled by context
     }
   };

@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
 import { Button, FormField } from '../../components/ui';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -32,7 +32,7 @@ const LoginPage = () => {
       clearError();
       await login(data);
       navigate('/dashboard');
-    } catch (err) {
+    } catch {
       // Error is handled by context
     }
   };

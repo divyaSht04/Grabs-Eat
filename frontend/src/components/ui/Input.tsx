@@ -1,5 +1,5 @@
-import { InputHTMLAttributes, forwardRef, ReactNode } from 'react';
-
+import { forwardRef } from 'react';
+import type { InputHTMLAttributes, ReactNode } from 'react';
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   leftIcon?: ReactNode;
