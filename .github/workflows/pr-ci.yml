@@ -1,0 +1,156 @@
+name: Pull Request CI
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  pr-validation:
+    name: PR Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Check PR Title
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          if [[ ! "$PR_TITLE" =~ ^(feat|fix|docs|style|refactor|test|chore|perf)(\(.+\))?: ]]; then
+            echo "❌ PR title must follow conventional commits format"
+            echo "Examples: feat: add new feature, fix: resolve bug, docs: update readme"
+            exit 1
+          fi
+          echo "✅ PR title follows conventional commits"
+
+      - name: 📝 Check PR Description
+        run: |
+          PR_BODY="${{ github.event.pull_request.body }}"
+          if [ -z "$PR_BODY" ]; then
+            echo "⚠️  PR description is empty - please add description"
+            exit 1
+          fi
+          echo "✅ PR has description"
+
+  backend-tests:
+    name: Backend Tests (Required)
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.changed_files, 'backend/')
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: grabeat_test
+          POSTGRES_USER: grabeat_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: 🧪 Run Backend Tests
+        working-directory: ./backend
+        run: mvn test
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/grabeat_test
+          SPRING_DATASOURCE_USERNAME: grabeat_user
+          SPRING_DATASOURCE_PASSWORD: test_password
+
+      - name: 📊 Test Summary
+        if: always()
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "### ✅ All Backend Tests Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Backend Tests Failed" >> $GITHUB_STEP_SUMMARY
+            echo "This PR cannot be merged until tests pass." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  frontend-tests:
+    name: Frontend Tests (Required)
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.changed_files, 'frontend/')
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📥 Install Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: 🔍 TypeScript Check
+        working-directory: ./frontend
+        run: npm run type-check
+
+      - name: 🎨 Format Check
+        working-directory: ./frontend
+        run: npx prettier --check "src/**/*.{js,jsx,ts,tsx}"
+
+      - name: 🔍 Lint Check
+        working-directory: ./frontend
+        run: npm run lint
+
+      - name: 📦 Build Check
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: 📊 Frontend Summary
+        if: always()
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "### ✅ All Frontend Checks Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Frontend Checks Failed" >> $GITHUB_STEP_SUMMARY
+            echo "This PR cannot be merged until checks pass." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  merge-readiness:
+    name: Merge Readiness Check
+    runs-on: ubuntu-latest
+    needs: [pr-validation, backend-tests, frontend-tests]
+    if: always()
+
+    steps:
+      - name: 🎯 Check All Jobs
+        run: |
+          echo "### 🎯 Merge Readiness Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.pr-validation.result }}" == "success" ] && \
+             [ "${{ needs.backend-tests.result }}" == "success" ] && \
+             [ "${{ needs.frontend-tests.result }}" == "success" ]; then
+            echo "✅ **All checks passed - Ready to merge!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Not ready to merge - Fix failing checks**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- PR Validation: ${{ needs.pr-validation.result }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Backend Tests: ${{ needs.backend-tests.result }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Frontend Tests: ${{ needs.frontend-tests.result }}" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
