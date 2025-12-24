@@ -1,5 +1,6 @@
-.github/**
+.github/instructions/**
 .gitattributes
 .idea/**
 maven-wrapper.properties
 README.md
+.env
