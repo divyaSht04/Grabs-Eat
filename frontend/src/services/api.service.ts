@@ -1,7 +1,8 @@
 import axios, { AxiosError } from 'axios';
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
+import Cookies from 'js-cookie';
 
-const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -14,10 +15,9 @@ class ApiClient {
       },
     });
 
-    // Request interceptor to add auth token
     this.client.interceptors.request.use(
       config => {
-        const token = localStorage.getItem('accessToken');
+        const token = Cookies.get('accessToken');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -26,23 +26,29 @@ class ApiClient {
       error => Promise.reject(error)
     );
 
+    // Response interceptor for error handling
     this.client.interceptors.response.use(
       response => response,
       async (error: AxiosError) => {
         const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
+        // Handle 401 errors (token expired)
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
 
           try {
-            const refreshToken = localStorage.getItem('refreshToken');
+            const refreshToken = Cookies.get('refreshToken');
             if (refreshToken) {
               const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
                 refreshToken,
               });
 
               const { accessToken } = response.data;
-              localStorage.setItem('accessToken', accessToken);
+              Cookies.set('accessToken', accessToken, {
+                secure: import.meta.env.PROD,
+                sameSite: 'strict',
+                expires: 1 / 24, // 1 hour
+              });
 
               if (originalRequest.headers) {
                 originalRequest.headers.Authorization = `Bearer ${accessToken}`;
@@ -51,8 +57,9 @@ class ApiClient {
               return this.client(originalRequest);
             }
           } catch (refreshError) {
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
+            // Refresh failed, logout user
+            Cookies.remove('accessToken');
+            Cookies.remove('refreshToken');
             localStorage.removeItem('user');
             window.location.href = '/login';
             return Promise.reject(refreshError);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -33,9 +33,15 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 const RegisterPage = () => {
   const navigate = useNavigate();
-  const { register: registerUser, isLoading, error, clearError } = useAuth();
+  const { register: registerUser, isLoading, error, clearError, isAuthenticated } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const {
     register,
@@ -85,7 +91,7 @@ const RegisterPage = () => {
             <FormField
               label="Full Name"
               type="text"
-              placeholder="John Doe"
+              placeholder="Full Name"
               error={errors.fullName?.message}
               leftIcon={<User size={18} />}
               {...register('fullName')}
@@ -94,7 +100,7 @@ const RegisterPage = () => {
             <FormField
               label="Email Address"
               type="email"
-              placeholder="you@example.com"
+              placeholder="your email"
               error={errors.email?.message}
               leftIcon={<Mail size={18} />}
               {...register('email')}
@@ -103,7 +109,7 @@ const RegisterPage = () => {
             <FormField
               label="Phone Number"
               type="tel"
-              placeholder="9841234567"
+              placeholder="10-digit number"
               error={errors.phoneNumber?.message}
               leftIcon={<Phone size={18} />}
               {...register('phoneNumber')}
