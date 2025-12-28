@@ -4,3 +4,12 @@
 maven-wrapper.properties
 README.md
 .env
+
+# Mobile (Expo/React Native)
+mobile/node_modules/
+mobile/.expo/
+mobile/.expo-shared/
+mobile/dist/
+mobile/npm-debug.*
+mobile/yarn-error.log
+mobile/.env

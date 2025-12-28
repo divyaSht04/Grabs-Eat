@@ -80,7 +80,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:5173"));
+        // Allow web frontend and mobile app
+        configuration.setAllowedOrigins(List.of(
+            "http://localhost:3000",      // Frontend web
+            "http://localhost:5173",      // Frontend web (Vite)
+            "http://localhost:8081",      // Expo web
+            "http://10.0.2.2:8081",       // Android emulator
+            "http://192.168.*.*:8081"     // Mobile devices on local network
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
