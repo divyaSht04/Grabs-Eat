@@ -31,10 +31,19 @@ class AuthService {
 
   async logout(): Promise<void> {
     try {
-      await apiService.post('/auth/logout');
+      // Send access token to backend for blacklisting
+      const accessToken = await SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
+      if (accessToken) {
+        await apiService.post('/auth/logout', {}, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+      }
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      // Clear all tokens from device (access token is blacklisted on backend)
       await this.clearAuthData();
     }
   }

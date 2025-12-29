@@ -1,12 +1,15 @@
 package com.nischal.backend.service.impl;
 
 import com.nischal.backend.dto.auth.*;
+import com.nischal.backend.entity.RefreshToken;
 import com.nischal.backend.entity.Role;
 import com.nischal.backend.entity.User;
 import com.nischal.backend.exception.BadRequestException;
 import com.nischal.backend.exception.UnauthorizedException;
 import com.nischal.backend.jwt.JwtUtil;
 import com.nischal.backend.mapper.UserMapper;
+import com.nischal.backend.service.RefreshTokenService;
+import com.nischal.backend.service.TokenBlacklistService;
 import com.nischal.backend.service.UserService;
 import com.nischal.backend.service.userdetails.CustomUserDetails;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +50,12 @@ class AuthServiceImplTest {
 
     @Mock
     private AuthenticationManager authenticationManager;
+
+    @Mock
+    private RefreshTokenService refreshTokenService;
+
+    @Mock
+    private TokenBlacklistService tokenBlacklistService;
 
     @InjectMocks
     private AuthServiceImpl authService;
@@ -119,13 +128,22 @@ class AuthServiceImplTest {
                 .role(Role.CUSTOMER)
                 .build();
 
+        RefreshToken refreshToken = RefreshToken.builder()
+                .id(1L)
+                .token("refresh-token-uuid")
+                .user(savedUser)
+                .expiryDate(LocalDateTime.now().plusDays(7))
+                .createdAt(LocalDateTime.now())
+                .revoked(false)
+                .build();
+
         when(userService.existsByEmail("new@example.com")).thenReturn(false);
         when(userService.existsByPhoneNumber("9841234568")).thenReturn(false);
         when(userMapper.toEntity(request)).thenReturn(newUser);
         when(passwordEncoder.encode("Password123")).thenReturn("encodedPassword");
         when(userService.createUser(any(User.class))).thenReturn(savedUser);
         when(jwtUtil.generateAccessToken(any(CustomUserDetails.class))).thenReturn("access-token");
-        when(jwtUtil.generateRefreshToken(any(CustomUserDetails.class))).thenReturn("refresh-token");
+        when(refreshTokenService.createRefreshToken(savedUser)).thenReturn(refreshToken);
         when(jwtUtil.getAccessTokenExpiration()).thenReturn(86400L);
         when(userMapper.toResponse(savedUser)).thenReturn(userResponse);
 
@@ -135,7 +153,7 @@ class AuthServiceImplTest {
         // Assert
         assertThat(response).isNotNull();
         assertThat(response.getAccessToken()).isEqualTo("access-token");
-        assertThat(response.getRefreshToken()).isEqualTo("refresh-token");
+        assertThat(response.getRefreshToken()).isEqualTo("refresh-token-uuid");
         assertThat(response.getTokenType()).isEqualTo("Bearer");
         assertThat(response.getExpiresIn()).isEqualTo(86400L);
         assertThat(response.getUser().getEmail()).isEqualTo("new@example.com");
@@ -145,7 +163,7 @@ class AuthServiceImplTest {
         verify(passwordEncoder, times(1)).encode("Password123");
         verify(userService, times(1)).createUser(any(User.class));
         verify(jwtUtil, times(1)).generateAccessToken(any(CustomUserDetails.class));
-        verify(jwtUtil, times(1)).generateRefreshToken(any(CustomUserDetails.class));
+        verify(refreshTokenService, times(1)).createRefreshToken(savedUser);
     }
 
     @Test
@@ -222,12 +240,21 @@ class AuthServiceImplTest {
                 .role(Role.CUSTOMER)
                 .build();
 
+        RefreshToken refreshToken = RefreshToken.builder()
+                .id(1L)
+                .token("refresh-token-uuid")
+                .user(savedUser)
+                .expiryDate(LocalDateTime.now().plusDays(7))
+                .createdAt(LocalDateTime.now())
+                .revoked(false)
+                .build();
+
         when(userService.existsByEmail("nophone@example.com")).thenReturn(false);
         when(userMapper.toEntity(request)).thenReturn(newUser);
         when(passwordEncoder.encode("Password123")).thenReturn("encodedPassword");
         when(userService.createUser(any(User.class))).thenReturn(savedUser);
         when(jwtUtil.generateAccessToken(any(CustomUserDetails.class))).thenReturn("access-token");
-        when(jwtUtil.generateRefreshToken(any(CustomUserDetails.class))).thenReturn("refresh-token");
+        when(refreshTokenService.createRefreshToken(savedUser)).thenReturn(refreshToken);
         when(jwtUtil.getAccessTokenExpiration()).thenReturn(86400L);
         when(userMapper.toResponse(savedUser)).thenReturn(userResponse);
 
@@ -273,12 +300,21 @@ class AuthServiceImplTest {
                 .role(Role.CUSTOMER)
                 .build();
 
+        RefreshToken refreshToken = RefreshToken.builder()
+                .id(2L)
+                .token("refresh-token-uuid-2")
+                .user(savedUser)
+                .expiryDate(LocalDateTime.now().plusDays(7))
+                .createdAt(LocalDateTime.now())
+                .revoked(false)
+                .build();
+
         when(userService.existsByEmail("emptyphone@example.com")).thenReturn(false);
         when(userMapper.toEntity(request)).thenReturn(newUser);
         when(passwordEncoder.encode("Password123")).thenReturn("encodedPassword");
         when(userService.createUser(any(User.class))).thenReturn(savedUser);
         when(jwtUtil.generateAccessToken(any(CustomUserDetails.class))).thenReturn("access-token");
-        when(jwtUtil.generateRefreshToken(any(CustomUserDetails.class))).thenReturn("refresh-token");
+        when(refreshTokenService.createRefreshToken(savedUser)).thenReturn(refreshToken);
         when(jwtUtil.getAccessTokenExpiration()).thenReturn(86400L);
         when(userMapper.toResponse(savedUser)).thenReturn(userResponse);
 
@@ -303,11 +339,20 @@ class AuthServiceImplTest {
 
         Authentication authentication = mock(Authentication.class);
 
+        RefreshToken refreshToken = RefreshToken.builder()
+                .id(1L)
+                .token("refresh-token-uuid")
+                .user(testUser)
+                .expiryDate(LocalDateTime.now().plusDays(7))
+                .createdAt(LocalDateTime.now())
+                .revoked(false)
+                .build();
+
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
         when(authentication.getPrincipal()).thenReturn(testUserDetails);
+        when(refreshTokenService.createRefreshToken(testUser)).thenReturn(refreshToken);
         when(jwtUtil.generateAccessToken(testUserDetails)).thenReturn("access-token");
-        when(jwtUtil.generateRefreshToken(testUserDetails)).thenReturn("refresh-token");
         when(jwtUtil.getAccessTokenExpiration()).thenReturn(86400L);
         when(userMapper.toResponse(testUser)).thenReturn(testUserResponse);
 
@@ -317,14 +362,15 @@ class AuthServiceImplTest {
         // Assert
         assertThat(response).isNotNull();
         assertThat(response.getAccessToken()).isEqualTo("access-token");
-        assertThat(response.getRefreshToken()).isEqualTo("refresh-token");
+        assertThat(response.getRefreshToken()).isEqualTo("refresh-token-uuid");
         assertThat(response.getTokenType()).isEqualTo("Bearer");
         assertThat(response.getExpiresIn()).isEqualTo(86400L);
         assertThat(response.getUser().getEmail()).isEqualTo("test@example.com");
 
         verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
+        verify(refreshTokenService, times(1)).revokeAllUserTokens(testUser);
         verify(jwtUtil, times(1)).generateAccessToken(testUserDetails);
-        verify(jwtUtil, times(1)).generateRefreshToken(testUserDetails);
+        verify(refreshTokenService, times(1)).createRefreshToken(testUser);
     }
 
     @Test
@@ -375,32 +421,47 @@ class AuthServiceImplTest {
     void refreshToken_Success() {
         // Arrange
         RefreshTokenRequest request = RefreshTokenRequest.builder()
-                .refreshToken("valid-refresh-token")
+                .refreshToken("valid-refresh-token-uuid")
                 .build();
 
-        when(jwtUtil.validateToken("valid-refresh-token")).thenReturn(true);
-        when(jwtUtil.extractUsername("valid-refresh-token")).thenReturn("test@example.com");
-        when(userService.getUserByEmail("test@example.com")).thenReturn(testUser);
+        RefreshToken oldRefreshToken = RefreshToken.builder()
+                .id(5L)
+                .token("valid-refresh-token-uuid")
+                .user(testUser)
+                .expiryDate(LocalDateTime.now().plusDays(7))
+                .createdAt(LocalDateTime.now())
+                .revoked(false)
+                .build();
+
+        RefreshToken newRefreshToken = RefreshToken.builder()
+                .id(6L)
+                .token("new-refresh-token-uuid")
+                .user(testUser)
+                .expiryDate(LocalDateTime.now().plusDays(7))
+                .createdAt(LocalDateTime.now())
+                .revoked(false)
+                .build();
+
+        when(refreshTokenService.validateRefreshToken("valid-refresh-token-uuid")).thenReturn(oldRefreshToken);
+        when(refreshTokenService.createRefreshToken(testUser)).thenReturn(newRefreshToken);
         when(jwtUtil.generateAccessToken(any(CustomUserDetails.class))).thenReturn("new-access-token");
-        when(jwtUtil.generateRefreshToken(any(CustomUserDetails.class))).thenReturn("new-refresh-token");
         when(jwtUtil.getAccessTokenExpiration()).thenReturn(86400L);
         when(userMapper.toResponse(testUser)).thenReturn(testUserResponse);
 
         // Act
-        AuthResponse response = authService.refreshToken(request);
+        AuthResponse response = authService.refreshToken(request.getRefreshToken());
 
         // Assert
         assertThat(response).isNotNull();
         assertThat(response.getAccessToken()).isEqualTo("new-access-token");
-        assertThat(response.getRefreshToken()).isEqualTo("new-refresh-token");
+        assertThat(response.getRefreshToken()).isEqualTo("new-refresh-token-uuid");
         assertThat(response.getTokenType()).isEqualTo("Bearer");
         assertThat(response.getUser().getEmail()).isEqualTo("test@example.com");
 
-        verify(jwtUtil, times(1)).validateToken("valid-refresh-token");
-        verify(jwtUtil, times(1)).extractUsername("valid-refresh-token");
-        verify(userService, times(1)).getUserByEmail("test@example.com");
+        verify(refreshTokenService, times(1)).validateRefreshToken("valid-refresh-token-uuid");
+        verify(refreshTokenService, times(1)).revokeRefreshToken("valid-refresh-token-uuid");
+        verify(refreshTokenService, times(1)).createRefreshToken(testUser);
         verify(jwtUtil, times(1)).generateAccessToken(any(CustomUserDetails.class));
-        verify(jwtUtil, times(1)).generateRefreshToken(any(CustomUserDetails.class));
     }
 
     @Test
@@ -411,16 +472,17 @@ class AuthServiceImplTest {
                 .refreshToken("invalid-token")
                 .build();
 
-        when(jwtUtil.validateToken("invalid-token")).thenReturn(false);
+        when(refreshTokenService.validateRefreshToken("invalid-token"))
+                .thenThrow(new UnauthorizedException("Invalid or expired refresh token"));
 
         // Act & Assert
-        assertThatThrownBy(() -> authService.refreshToken(request))
+        assertThatThrownBy(() -> authService.refreshToken(request.getRefreshToken()))
                 .isInstanceOf(UnauthorizedException.class)
                 .hasMessage("Invalid or expired refresh token");
 
-        verify(jwtUtil, times(1)).validateToken("invalid-token");
-        verify(jwtUtil, never()).extractUsername(anyString());
-        verify(userService, never()).getUserByEmail(anyString());
+        verify(refreshTokenService, times(1)).validateRefreshToken("invalid-token");
+        verify(refreshTokenService, never()).revokeRefreshToken(any());
+        verify(refreshTokenService, never()).createRefreshToken(any());
     }
 
     @Test
@@ -431,14 +493,15 @@ class AuthServiceImplTest {
                 .refreshToken("expired-token")
                 .build();
 
-        when(jwtUtil.validateToken("expired-token")).thenReturn(false);
+        when(refreshTokenService.validateRefreshToken("expired-token"))
+                .thenThrow(new UnauthorizedException("Invalid or expired refresh token"));
 
         // Act & Assert
-        assertThatThrownBy(() -> authService.refreshToken(request))
+        assertThatThrownBy(() -> authService.refreshToken(request.getRefreshToken()))
                 .isInstanceOf(UnauthorizedException.class)
                 .hasMessage("Invalid or expired refresh token");
 
-        verify(jwtUtil, times(1)).validateToken("expired-token");
+        verify(refreshTokenService, times(1)).validateRefreshToken("expired-token");
     }
 
     // ==================== LOGOUT TESTS ====================
@@ -496,13 +559,22 @@ class AuthServiceImplTest {
                 .role(Role.CUSTOMER)
                 .build();
 
+        RefreshToken registerRefreshToken = RefreshToken.builder()
+                .id(3L)
+                .token("register-refresh-token-uuid")
+                .user(savedUser)
+                .expiryDate(LocalDateTime.now().plusDays(7))
+                .createdAt(LocalDateTime.now())
+                .revoked(false)
+                .build();
+
         when(userService.existsByEmail("integration@example.com")).thenReturn(false);
         when(userService.existsByPhoneNumber("9841234569")).thenReturn(false);
         when(userMapper.toEntity(registerRequest)).thenReturn(newUser);
         when(passwordEncoder.encode("Password123")).thenReturn("encodedPassword");
         when(userService.createUser(any(User.class))).thenReturn(savedUser);
         when(jwtUtil.generateAccessToken(any(CustomUserDetails.class))).thenReturn("register-access-token");
-        when(jwtUtil.generateRefreshToken(any(CustomUserDetails.class))).thenReturn("register-refresh-token");
+        when(refreshTokenService.createRefreshToken(savedUser)).thenReturn(registerRefreshToken);
         when(jwtUtil.getAccessTokenExpiration()).thenReturn(86400L);
         when(userMapper.toResponse(savedUser)).thenReturn(userResponse);
 
@@ -521,11 +593,20 @@ class AuthServiceImplTest {
         Authentication authentication = mock(Authentication.class);
         CustomUserDetails integrationUserDetails = new CustomUserDetails(savedUser);
 
+        RefreshToken loginRefreshToken = RefreshToken.builder()
+                .id(4L)
+                .token("login-refresh-token-uuid")
+                .user(savedUser)
+                .expiryDate(LocalDateTime.now().plusDays(7))
+                .createdAt(LocalDateTime.now())
+                .revoked(false)
+                .build();
+
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
         when(authentication.getPrincipal()).thenReturn(integrationUserDetails);
+        when(refreshTokenService.createRefreshToken(savedUser)).thenReturn(loginRefreshToken);
         when(jwtUtil.generateAccessToken(integrationUserDetails)).thenReturn("login-access-token");
-        when(jwtUtil.generateRefreshToken(integrationUserDetails)).thenReturn("login-refresh-token");
 
         AuthResponse loginResponse = authService.login(loginRequest);
 

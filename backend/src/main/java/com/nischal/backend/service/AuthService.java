@@ -11,7 +11,9 @@ public interface AuthService {
 
     AuthResponse login(LoginRequest request);
 
-    AuthResponse refreshToken(RefreshTokenRequest request);
+    AuthResponse refreshToken(String refreshToken);
 
-    void logout(String token);
+    void logout(String accessToken);
+
+    boolean existsByEmail(String email);
 }
