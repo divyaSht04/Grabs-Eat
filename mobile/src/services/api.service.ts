@@ -33,9 +33,42 @@ class ApiService {
     this.api.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
-        if (error.response?.status === 401) {
-          await this.clearTokens();
+        const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+        // Handle 401 errors (token expired or blacklisted)
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+
+          try {
+            const refreshToken = await SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+            
+            if (refreshToken) {
+              // Request new tokens with rotation
+              const response = await axios.post(`${API_CONFIG.BASE_URL}/auth/refresh`, {
+                refreshToken,
+              });
+
+              const { accessToken, refreshToken: newRefreshToken } = response.data;
+
+              // Store new tokens (Token Rotation)
+              await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+              await SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken);
+
+              // Update the failed request with new token
+              if (originalRequest.headers) {
+                originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+              }
+
+              // Retry the original request
+              return this.api(originalRequest);
+            }
+          } catch (refreshError) {
+            // Refresh failed (token revoked, expired, or invalid), logout user
+            await this.clearTokens();
+            return Promise.reject(this.handleError(refreshError as AxiosError));
+          }
         }
+
         return Promise.reject(this.handleError(error));
       }
     );

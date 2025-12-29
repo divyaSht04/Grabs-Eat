@@ -17,21 +17,30 @@ export const authService = {
     return apiClient.post<AuthResponse>('/auth/register', userData);
   },
 
-  async refreshToken(refreshToken: string): Promise<{ accessToken: string; tokenType: string }> {
-    return apiClient.post('/auth/refresh', { refreshToken });
+  async refreshToken(refreshToken: string): Promise<AuthResponse> {
+    return apiClient.post<AuthResponse>('/auth/refresh', { refreshToken });
   },
 
   async logout(): Promise<void> {
-    return apiClient.post('/auth/logout');
+    // Send access token to backend for blacklisting
+    const accessToken = this.getAccessToken();
+    if (accessToken) {
+      await apiClient.post('/auth/logout', {}, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+    }
   },
 
   // Cookie-based storage helpers
+  // Stores tokens with proper expiry times. Refresh tokens are rotated on each refresh.
   setTokens(accessToken: string, refreshToken: string): void {
     Cookies.set('accessToken', accessToken, {
       ...COOKIE_OPTIONS,
       expires: 1 / 24, // 1 hour for access token
     });
-    Cookies.set('refreshToken', refreshToken, COOKIE_OPTIONS);
+    Cookies.set('refreshToken', refreshToken, COOKIE_OPTIONS); // 7 days for refresh token
   },
 
   getAccessToken(): string | null {
@@ -43,6 +52,7 @@ export const authService = {
   },
 
   clearTokens(): void {
+    // Clear all client-side tokens (access token is blacklisted on backend)
     Cookies.remove('accessToken');
     Cookies.remove('refreshToken');
     localStorage.removeItem('user');

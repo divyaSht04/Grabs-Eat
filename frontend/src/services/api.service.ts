@@ -26,28 +26,38 @@ class ApiClient {
       error => Promise.reject(error)
     );
 
-    // Response interceptor for error handling
+    // Response interceptor for error handling and token refresh
     this.client.interceptors.response.use(
       response => response,
       async (error: AxiosError) => {
         const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
-        // Handle 401 errors (token expired)
+        // Handle 401 errors (token expired or blacklisted)
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
 
           try {
             const refreshToken = Cookies.get('refreshToken');
             if (refreshToken) {
+              // Request new tokens with rotation
               const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
                 refreshToken,
               });
 
-              const { accessToken } = response.data;
+              const { accessToken, refreshToken: newRefreshToken } = response.data;
+              
+              // Store new access token (1 hour expiry)
               Cookies.set('accessToken', accessToken, {
                 secure: import.meta.env.PROD,
                 sameSite: 'strict',
                 expires: 1 / 24, // 1 hour
+              });
+
+              // Store new refresh token (7 days expiry) - Token Rotation
+              Cookies.set('refreshToken', newRefreshToken, {
+                secure: import.meta.env.PROD,
+                sameSite: 'strict',
+                expires: 7, // 7 days
               });
 
               if (originalRequest.headers) {
@@ -57,7 +67,7 @@ class ApiClient {
               return this.client(originalRequest);
             }
           } catch (refreshError) {
-            // Refresh failed, logout user
+            // Refresh failed (token revoked, expired, or invalid), logout user
             Cookies.remove('accessToken');
             Cookies.remove('refreshToken');
             localStorage.removeItem('user');
