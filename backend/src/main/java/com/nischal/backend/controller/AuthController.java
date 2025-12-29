@@ -5,10 +5,12 @@ import com.nischal.backend.dto.auth.LoginRequest;
 import com.nischal.backend.dto.auth.RefreshTokenRequest;
 import com.nischal.backend.dto.auth.RegisterRequest;
 import com.nischal.backend.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -32,14 +34,24 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
-        AuthResponse response = authService.refreshToken(request);
+        AuthResponse response = authService.refreshToken(request.getRefreshToken());
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String token) {
-        String jwt = token.substring(7);
-        authService.logout(jwt);
+    public ResponseEntity<Void> logout(HttpServletRequest request) {
+        String jwt = getJwtFromRequest(request);
+        if (StringUtils.hasText(jwt)) {
+            authService.logout(jwt);
+        }
         return ResponseEntity.noContent().build();
+    }
+
+    private String getJwtFromRequest(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        return null;
     }
 }

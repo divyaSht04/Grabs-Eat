@@ -2,27 +2,34 @@ package com.nischal.backend.service.impl;
 
 import com.nischal.backend.dto.auth.AuthResponse;
 import com.nischal.backend.dto.auth.LoginRequest;
-import com.nischal.backend.dto.auth.RefreshTokenRequest;
 import com.nischal.backend.dto.auth.RegisterRequest;
+import com.nischal.backend.entity.RefreshToken;
 import com.nischal.backend.entity.User;
 import com.nischal.backend.exception.BadRequestException;
 import com.nischal.backend.exception.UnauthorizedException;
 import com.nischal.backend.mapper.UserMapper;
 import com.nischal.backend.jwt.JwtUtil;
 import com.nischal.backend.service.AuthService;
+import com.nischal.backend.service.RefreshTokenService;
+import com.nischal.backend.service.TokenBlacklistService;
 import com.nischal.backend.service.UserService;
 import com.nischal.backend.service.userdetails.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthServiceImpl implements AuthService {
 
     private final UserService userService;
@@ -30,6 +37,8 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
+    private final RefreshTokenService refreshTokenService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     @Transactional
@@ -56,13 +65,17 @@ public class AuthServiceImpl implements AuthService {
         // Wrap in CustomUserDetails for proper RBA
         CustomUserDetails userDetails = new CustomUserDetails(savedUser);
 
-        // Generate tokens
+        // Generate access token
         String accessToken = jwtUtil.generateAccessToken(userDetails);
-        String refreshToken = jwtUtil.generateRefreshToken(userDetails);
+        
+        // Create refresh token
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(savedUser);
+
+        log.info("User registered successfully: {}", savedUser.getEmail());
 
         return AuthResponse.builder()
                 .accessToken(accessToken)
-                .refreshToken(refreshToken)
+                .refreshToken(refreshToken.getToken())
                 .tokenType("Bearer")
                 .expiresIn(jwtUtil.getAccessTokenExpiration())
                 .user(userMapper.toResponse(savedUser))
@@ -70,7 +83,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         try {
             // Authenticate user
@@ -85,13 +98,25 @@ public class AuthServiceImpl implements AuthService {
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
             User user = userDetails.getUser();
 
-            // Generate tokens
+            // Check if user is active
+            if (!user.getIsActive()) {
+                throw new UnauthorizedException("Account is deactivated");
+            }
+
+            // Revoke all existing refresh tokens for this user
+            refreshTokenService.revokeAllUserTokens(user);
+
+            // Generate new access token
             String accessToken = jwtUtil.generateAccessToken(userDetails);
-            String refreshToken = jwtUtil.generateRefreshToken(userDetails);
+            
+            // Create new refresh token
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+
+            log.info("User logged in successfully: {}", user.getEmail());
 
             return AuthResponse.builder()
                     .accessToken(accessToken)
-                    .refreshToken(refreshToken)
+                    .refreshToken(refreshToken.getToken())
                     .tokenType("Bearer")
                     .expiresIn(jwtUtil.getAccessTokenExpiration())
                     .user(userMapper.toResponse(user))
@@ -103,29 +128,29 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public AuthResponse refreshToken(RefreshTokenRequest request) {
-        String refreshToken = request.getRefreshToken();
+    @Transactional
+    public AuthResponse refreshToken(String refreshTokenStr) {
+        // Validate and get refresh token
+        RefreshToken refreshToken = refreshTokenService.validateRefreshToken(refreshTokenStr);
+        User user = refreshToken.getUser();
 
-        // Validate refresh token
-        if (!jwtUtil.validateToken(refreshToken)) {
-            throw new UnauthorizedException("Invalid or expired refresh token");
-        }
-
-        // Extract user email from token
-        String email = jwtUtil.extractUsername(refreshToken);
-        User user = userService.getUserByEmail(email);
+        // Revoke the old refresh token (Token Rotation)
+        refreshTokenService.revokeRefreshToken(refreshTokenStr);
 
         // Wrap in CustomUserDetails for proper RBA
         CustomUserDetails userDetails = new CustomUserDetails(user);
 
-        // Generate new tokens
+        // Generate new access token
         String newAccessToken = jwtUtil.generateAccessToken(userDetails);
-        String newRefreshToken = jwtUtil.generateRefreshToken(userDetails);
+        
+        // Create new refresh token
+        RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user);
+
+        log.info("Tokens refreshed for user: {}", user.getEmail());
 
         return AuthResponse.builder()
                 .accessToken(newAccessToken)
-                .refreshToken(newRefreshToken)
+                .refreshToken(newRefreshToken.getToken())
                 .tokenType("Bearer")
                 .expiresIn(jwtUtil.getAccessTokenExpiration())
                 .user(userMapper.toResponse(user))
@@ -133,8 +158,30 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void logout(String token) {
-        // TODO: Implement token blacklisting if needed
-        // For now, client-side logout is sufficient (remove token from storage)
+    @Transactional
+    public void logout(String accessToken) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        
+        if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+            User user = userDetails.getUser();
+
+            // Blacklist the current access token
+            LocalDateTime expiryDate = LocalDateTime.now()
+                    .plusSeconds(jwtUtil.getAccessTokenExpiration() / 1000);
+            tokenBlacklistService.blacklistToken(accessToken, expiryDate, "LOGOUT", user.getId());
+
+            // Revoke all refresh tokens for this user
+            refreshTokenService.revokeAllUserTokens(user);
+
+            SecurityContextHolder.clearContext();
+
+            log.info("User logged out successfully: {}", user.getEmail());
+        }
+    }
+
+    @Override
+    public boolean existsByEmail(String email) {
+        return userService.existsByEmail(email);
     }
 }
