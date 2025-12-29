@@ -206,7 +206,10 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void verifyEmail(User user, String code) {
+    public void verifyEmail(String email, String code) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+
         if (user.getIsEmailVerified()) {
             throw new BadRequestException("Email is already verified");
         }
@@ -226,7 +229,10 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void resendVerificationCode(User user) {
+    public void resendVerificationCode(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+
         if (user.getIsEmailVerified()) {
             throw new BadRequestException("Email is already verified");
         }
