@@ -4,6 +4,7 @@ import com.nischal.backend.dto.auth.AuthResponse;
 import com.nischal.backend.dto.auth.LoginRequest;
 import com.nischal.backend.dto.auth.RefreshTokenRequest;
 import com.nischal.backend.dto.auth.RegisterRequest;
+import com.nischal.backend.entity.User;
 
 public interface AuthService {
 
@@ -16,4 +17,12 @@ public interface AuthService {
     void logout(String accessToken);
 
     boolean existsByEmail(String email);
+
+    void verifyEmail(User user, String code);
+
+    void resendVerificationCode(User user);
+
+    void sendPasswordResetCode(String email);
+
+    void resetPassword(String email, String code, String newPassword);
 }

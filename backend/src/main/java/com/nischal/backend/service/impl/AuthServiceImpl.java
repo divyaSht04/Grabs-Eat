@@ -3,13 +3,18 @@ package com.nischal.backend.service.impl;
 import com.nischal.backend.dto.auth.AuthResponse;
 import com.nischal.backend.dto.auth.LoginRequest;
 import com.nischal.backend.dto.auth.RegisterRequest;
+import com.nischal.backend.entity.EmailVerification;
 import com.nischal.backend.entity.RefreshToken;
 import com.nischal.backend.entity.User;
 import com.nischal.backend.exception.BadRequestException;
+import com.nischal.backend.exception.ResourceNotFoundException;
 import com.nischal.backend.exception.UnauthorizedException;
 import com.nischal.backend.mapper.UserMapper;
 import com.nischal.backend.jwt.JwtUtil;
+import com.nischal.backend.repository.UserRepository;
 import com.nischal.backend.service.AuthService;
+import com.nischal.backend.service.EmailService;
+import com.nischal.backend.service.EmailVerificationService;
 import com.nischal.backend.service.RefreshTokenService;
 import com.nischal.backend.service.TokenBlacklistService;
 import com.nischal.backend.service.UserService;
@@ -33,12 +38,15 @@ import java.time.LocalDateTime;
 public class AuthServiceImpl implements AuthService {
 
     private final UserService userService;
+    private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
     private final TokenBlacklistService tokenBlacklistService;
+    private final EmailVerificationService emailVerificationService;
+    private final EmailService emailService;
 
     @Override
     @Transactional
@@ -61,6 +69,17 @@ public class AuthServiceImpl implements AuthService {
 
         // Save user
         User savedUser = userService.createUser(user);
+
+        // Send verification email
+        EmailVerification verification = emailVerificationService.createVerificationCode(
+                savedUser,
+                EmailVerification.VerificationType.EMAIL_VERIFICATION
+        );
+        emailService.sendVerificationEmail(
+                savedUser.getEmail(),
+                savedUser.getFullName(),
+                verification.getVerificationCode()
+        );
 
         // Wrap in CustomUserDetails for proper RBA
         CustomUserDetails userDetails = new CustomUserDetails(savedUser);
@@ -183,5 +202,89 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public boolean existsByEmail(String email) {
         return userService.existsByEmail(email);
+    }
+
+    @Override
+    @Transactional
+    public void verifyEmail(User user, String code) {
+        if (user.getIsEmailVerified()) {
+            throw new BadRequestException("Email is already verified");
+        }
+
+        boolean isValid = emailVerificationService.verifyCode(
+                user,
+                code,
+                EmailVerification.VerificationType.EMAIL_VERIFICATION
+        );
+
+        if (isValid) {
+            user.setIsEmailVerified(true);
+            userRepository.save(user);
+            log.info("Email verified for user: {}", user.getEmail());
+        }
+    }
+
+    @Override
+    @Transactional
+    public void resendVerificationCode(User user) {
+        if (user.getIsEmailVerified()) {
+            throw new BadRequestException("Email is already verified");
+        }
+
+        EmailVerification verification = emailVerificationService.createVerificationCode(
+                user,
+                EmailVerification.VerificationType.EMAIL_VERIFICATION
+        );
+
+        emailService.sendVerificationEmail(
+                user.getEmail(),
+                user.getFullName(),
+                verification.getVerificationCode()
+        );
+
+        log.info("Verification code resent to: {}", user.getEmail());
+    }
+
+    @Override
+    @Transactional
+    public void sendPasswordResetCode(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+
+        EmailVerification verification = emailVerificationService.createVerificationCode(
+                user,
+                EmailVerification.VerificationType.PASSWORD_RESET
+        );
+
+        emailService.sendPasswordResetEmail(
+                user.getEmail(),
+                user.getFullName(),
+                verification.getVerificationCode()
+        );
+
+        log.info("Password reset code sent to: {}", email);
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(String email, String code, String newPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+
+        boolean isValid = emailVerificationService.verifyCode(
+                user,
+                code,
+                EmailVerification.VerificationType.PASSWORD_RESET
+        );
+
+        if (isValid) {
+            user.setPassword(passwordEncoder.encode(newPassword));
+            userRepository.save(user);
+
+            // Revoke all refresh tokens for security
+            refreshTokenService.revokeAllUserTokens(user);
+
+            log.info("Password reset successfully for user: {}", email);
+        }
     }
 }

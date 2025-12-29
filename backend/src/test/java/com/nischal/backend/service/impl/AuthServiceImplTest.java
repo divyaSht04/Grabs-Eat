@@ -1,6 +1,7 @@
 package com.nischal.backend.service.impl;
 
 import com.nischal.backend.dto.auth.*;
+import com.nischal.backend.entity.EmailVerification;
 import com.nischal.backend.entity.RefreshToken;
 import com.nischal.backend.entity.Role;
 import com.nischal.backend.entity.User;
@@ -8,6 +9,9 @@ import com.nischal.backend.exception.BadRequestException;
 import com.nischal.backend.exception.UnauthorizedException;
 import com.nischal.backend.jwt.JwtUtil;
 import com.nischal.backend.mapper.UserMapper;
+import com.nischal.backend.repository.UserRepository;
+import com.nischal.backend.service.EmailService;
+import com.nischal.backend.service.EmailVerificationService;
 import com.nischal.backend.service.RefreshTokenService;
 import com.nischal.backend.service.TokenBlacklistService;
 import com.nischal.backend.service.UserService;
@@ -28,6 +32,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -38,6 +43,9 @@ class AuthServiceImplTest {
 
     @Mock
     private UserService userService;
+
+    @Mock
+    private UserRepository userRepository;
 
     @Mock
     private UserMapper userMapper;
@@ -57,12 +65,19 @@ class AuthServiceImplTest {
     @Mock
     private TokenBlacklistService tokenBlacklistService;
 
+    @Mock
+    private EmailVerificationService emailVerificationService;
+
+    @Mock
+    private EmailService emailService;
+
     @InjectMocks
     private AuthServiceImpl authService;
 
     private User testUser;
     private UserResponse testUserResponse;
     private CustomUserDetails testUserDetails;
+    private EmailVerification testVerification;
 
     @BeforeEach
     void setUp() {
@@ -90,6 +105,16 @@ class AuthServiceImplTest {
                 .build();
 
         testUserDetails = new CustomUserDetails(testUser);
+
+        testVerification = EmailVerification.builder()
+                .id(1L)
+                .user(testUser)
+                .verificationCode("123456")
+                .verificationType(EmailVerification.VerificationType.EMAIL_VERIFICATION)
+                .expiryDate(LocalDateTime.now().plusMinutes(15))
+                .isUsed(false)
+                .attemptCount(0)
+                .build();
     }
 
     // ==================== REGISTER TESTS ====================
@@ -142,6 +167,9 @@ class AuthServiceImplTest {
         when(userMapper.toEntity(request)).thenReturn(newUser);
         when(passwordEncoder.encode("Password123")).thenReturn("encodedPassword");
         when(userService.createUser(any(User.class))).thenReturn(savedUser);
+        when(emailVerificationService.createVerificationCode(any(User.class), eq(EmailVerification.VerificationType.EMAIL_VERIFICATION)))
+                .thenReturn(testVerification);
+        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString(), anyString());
         when(jwtUtil.generateAccessToken(any(CustomUserDetails.class))).thenReturn("access-token");
         when(refreshTokenService.createRefreshToken(savedUser)).thenReturn(refreshToken);
         when(jwtUtil.getAccessTokenExpiration()).thenReturn(86400L);
@@ -154,6 +182,9 @@ class AuthServiceImplTest {
         assertThat(response).isNotNull();
         assertThat(response.getAccessToken()).isEqualTo("access-token");
         assertThat(response.getRefreshToken()).isEqualTo("refresh-token-uuid");
+        
+        verify(emailVerificationService).createVerificationCode(savedUser, EmailVerification.VerificationType.EMAIL_VERIFICATION);
+        verify(emailService).sendVerificationEmail(eq("new@example.com"), eq("New User"), anyString());
         assertThat(response.getTokenType()).isEqualTo("Bearer");
         assertThat(response.getExpiresIn()).isEqualTo(86400L);
         assertThat(response.getUser().getEmail()).isEqualTo("new@example.com");
@@ -253,6 +284,9 @@ class AuthServiceImplTest {
         when(userMapper.toEntity(request)).thenReturn(newUser);
         when(passwordEncoder.encode("Password123")).thenReturn("encodedPassword");
         when(userService.createUser(any(User.class))).thenReturn(savedUser);
+        when(emailVerificationService.createVerificationCode(any(User.class), eq(EmailVerification.VerificationType.EMAIL_VERIFICATION)))
+                .thenReturn(testVerification);
+        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString(), anyString());
         when(jwtUtil.generateAccessToken(any(CustomUserDetails.class))).thenReturn("access-token");
         when(refreshTokenService.createRefreshToken(savedUser)).thenReturn(refreshToken);
         when(jwtUtil.getAccessTokenExpiration()).thenReturn(86400L);
@@ -313,6 +347,9 @@ class AuthServiceImplTest {
         when(userMapper.toEntity(request)).thenReturn(newUser);
         when(passwordEncoder.encode("Password123")).thenReturn("encodedPassword");
         when(userService.createUser(any(User.class))).thenReturn(savedUser);
+        when(emailVerificationService.createVerificationCode(any(User.class), eq(EmailVerification.VerificationType.EMAIL_VERIFICATION)))
+                .thenReturn(testVerification);
+        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString(), anyString());
         when(jwtUtil.generateAccessToken(any(CustomUserDetails.class))).thenReturn("access-token");
         when(refreshTokenService.createRefreshToken(savedUser)).thenReturn(refreshToken);
         when(jwtUtil.getAccessTokenExpiration()).thenReturn(86400L);
@@ -573,6 +610,9 @@ class AuthServiceImplTest {
         when(userMapper.toEntity(registerRequest)).thenReturn(newUser);
         when(passwordEncoder.encode("Password123")).thenReturn("encodedPassword");
         when(userService.createUser(any(User.class))).thenReturn(savedUser);
+        when(emailVerificationService.createVerificationCode(any(User.class), eq(EmailVerification.VerificationType.EMAIL_VERIFICATION)))
+                .thenReturn(testVerification);
+        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString(), anyString());
         when(jwtUtil.generateAccessToken(any(CustomUserDetails.class))).thenReturn("register-access-token");
         when(refreshTokenService.createRefreshToken(savedUser)).thenReturn(registerRefreshToken);
         when(jwtUtil.getAccessTokenExpiration()).thenReturn(86400L);
@@ -614,5 +654,117 @@ class AuthServiceImplTest {
         assertThat(loginResponse).isNotNull();
         assertThat(loginResponse.getAccessToken()).isEqualTo("login-access-token");
         assertThat(loginResponse.getUser().getEmail()).isEqualTo("integration@example.com");
+    }
+
+    // ==================== EMAIL VERIFICATION TESTS ====================
+
+    @Test
+    @DisplayName("Should verify email successfully")
+    void verifyEmail_Success() {
+        // Arrange
+        String code = "123456";
+        when(emailVerificationService.verifyCode(testUser, code, EmailVerification.VerificationType.EMAIL_VERIFICATION))
+                .thenReturn(true);
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+
+        // Act
+        authService.verifyEmail(testUser, code);
+
+        // Assert
+        assertTrue(testUser.getIsEmailVerified());
+        verify(emailVerificationService).verifyCode(testUser, code, EmailVerification.VerificationType.EMAIL_VERIFICATION);
+        verify(userRepository).save(testUser);
+    }
+
+    @Test
+    @DisplayName("Should throw exception when email already verified")
+    void verifyEmail_AlreadyVerified() {
+        // Arrange
+        testUser.setIsEmailVerified(true);
+        String code = "123456";
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.verifyEmail(testUser, code))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("Email is already verified");
+
+        verify(emailVerificationService, never()).verifyCode(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Should resend verification code successfully")
+    void resendVerificationCode_Success() {
+        // Arrange
+        when(emailVerificationService.createVerificationCode(testUser, EmailVerification.VerificationType.EMAIL_VERIFICATION))
+                .thenReturn(testVerification);
+        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString(), anyString());
+
+        // Act
+        authService.resendVerificationCode(testUser);
+
+        // Assert
+        verify(emailVerificationService).createVerificationCode(testUser, EmailVerification.VerificationType.EMAIL_VERIFICATION);
+        verify(emailService).sendVerificationEmail(testUser.getEmail(), testUser.getFullName(), testVerification.getVerificationCode());
+    }
+
+    @Test
+    @DisplayName("Should throw exception when resending to already verified email")
+    void resendVerificationCode_AlreadyVerified() {
+        // Arrange
+        testUser.setIsEmailVerified(true);
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.resendVerificationCode(testUser))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("Email is already verified");
+
+        verify(emailVerificationService, never()).createVerificationCode(any(), any());
+        verify(emailService, never()).sendVerificationEmail(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("Should send password reset code successfully")
+    void sendPasswordResetCode_Success() {
+        // Arrange
+        String email = "test@example.com";
+        when(userRepository.findByEmail(email)).thenReturn(java.util.Optional.of(testUser));
+        when(emailVerificationService.createVerificationCode(testUser, EmailVerification.VerificationType.PASSWORD_RESET))
+                .thenReturn(testVerification);
+        doNothing().when(emailService).sendPasswordResetEmail(anyString(), anyString(), anyString());
+
+        // Act
+        authService.sendPasswordResetCode(email);
+
+        // Assert
+        verify(userRepository).findByEmail(email);
+        verify(emailVerificationService).createVerificationCode(testUser, EmailVerification.VerificationType.PASSWORD_RESET);
+        verify(emailService).sendPasswordResetEmail(testUser.getEmail(), testUser.getFullName(), testVerification.getVerificationCode());
+    }
+
+    @Test
+    @DisplayName("Should reset password successfully")
+    void resetPassword_Success() {
+        // Arrange
+        String email = "test@example.com";
+        String code = "123456";
+        String newPassword = "NewPassword123";
+
+        when(userRepository.findByEmail(email)).thenReturn(java.util.Optional.of(testUser));
+        when(emailVerificationService.verifyCode(testUser, code, EmailVerification.VerificationType.PASSWORD_RESET))
+                .thenReturn(true);
+        when(passwordEncoder.encode(newPassword)).thenReturn("encodedNewPassword");
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+        doNothing().when(refreshTokenService).revokeAllUserTokens(testUser);
+
+        // Act
+        authService.resetPassword(email, code, newPassword);
+
+        // Assert
+        verify(userRepository).findByEmail(email);
+        verify(emailVerificationService).verifyCode(testUser, code, EmailVerification.VerificationType.PASSWORD_RESET);
+        verify(passwordEncoder).encode(newPassword);
+        verify(userRepository).save(testUser);
+        verify(refreshTokenService).revokeAllUserTokens(testUser);
+        assertEquals("encodedNewPassword", testUser.getPassword());
     }
 }
