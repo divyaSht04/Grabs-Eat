@@ -25,11 +25,15 @@ export const authService = {
     // Send access token to backend for blacklisting
     const accessToken = this.getAccessToken();
     if (accessToken) {
-      await apiClient.post('/auth/logout', {}, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
+      await apiClient.post(
+        '/auth/logout',
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
         }
-      });
+      );
     }
   },
 

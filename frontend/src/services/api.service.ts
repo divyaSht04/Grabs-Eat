@@ -45,7 +45,7 @@ class ApiClient {
               });
 
               const { accessToken, refreshToken: newRefreshToken } = response.data;
-              
+
               // Store new access token (1 hour expiry)
               Cookies.set('accessToken', accessToken, {
                 secure: import.meta.env.PROD,
