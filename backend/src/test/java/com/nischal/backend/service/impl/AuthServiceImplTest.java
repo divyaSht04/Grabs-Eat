@@ -662,16 +662,19 @@ class AuthServiceImplTest {
     @DisplayName("Should verify email successfully")
     void verifyEmail_Success() {
         // Arrange
+        String email = "test@example.com";
         String code = "123456";
+        when(userRepository.findByEmail(email)).thenReturn(java.util.Optional.of(testUser));
         when(emailVerificationService.verifyCode(testUser, code, EmailVerification.VerificationType.EMAIL_VERIFICATION))
                 .thenReturn(true);
         when(userRepository.save(any(User.class))).thenReturn(testUser);
 
         // Act
-        authService.verifyEmail(testUser, code);
+        authService.verifyEmail(email, code);
 
         // Assert
         assertTrue(testUser.getIsEmailVerified());
+        verify(userRepository).findByEmail(email);
         verify(emailVerificationService).verifyCode(testUser, code, EmailVerification.VerificationType.EMAIL_VERIFICATION);
         verify(userRepository).save(testUser);
     }
@@ -680,14 +683,17 @@ class AuthServiceImplTest {
     @DisplayName("Should throw exception when email already verified")
     void verifyEmail_AlreadyVerified() {
         // Arrange
+        String email = "test@example.com";
         testUser.setIsEmailVerified(true);
         String code = "123456";
+        when(userRepository.findByEmail(email)).thenReturn(java.util.Optional.of(testUser));
 
         // Act & Assert
-        assertThatThrownBy(() -> authService.verifyEmail(testUser, code))
+        assertThatThrownBy(() -> authService.verifyEmail(email, code))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessage("Email is already verified");
 
+        verify(userRepository).findByEmail(email);
         verify(emailVerificationService, never()).verifyCode(any(), any(), any());
     }
 
@@ -695,14 +701,17 @@ class AuthServiceImplTest {
     @DisplayName("Should resend verification code successfully")
     void resendVerificationCode_Success() {
         // Arrange
+        String email = "test@example.com";
+        when(userRepository.findByEmail(email)).thenReturn(java.util.Optional.of(testUser));
         when(emailVerificationService.createVerificationCode(testUser, EmailVerification.VerificationType.EMAIL_VERIFICATION))
                 .thenReturn(testVerification);
         doNothing().when(emailService).sendVerificationEmail(anyString(), anyString(), anyString());
 
         // Act
-        authService.resendVerificationCode(testUser);
+        authService.resendVerificationCode(email);
 
         // Assert
+        verify(userRepository).findByEmail(email);
         verify(emailVerificationService).createVerificationCode(testUser, EmailVerification.VerificationType.EMAIL_VERIFICATION);
         verify(emailService).sendVerificationEmail(testUser.getEmail(), testUser.getFullName(), testVerification.getVerificationCode());
     }
@@ -711,13 +720,16 @@ class AuthServiceImplTest {
     @DisplayName("Should throw exception when resending to already verified email")
     void resendVerificationCode_AlreadyVerified() {
         // Arrange
+        String email = "test@example.com";
         testUser.setIsEmailVerified(true);
+        when(userRepository.findByEmail(email)).thenReturn(java.util.Optional.of(testUser));
 
         // Act & Assert
-        assertThatThrownBy(() -> authService.resendVerificationCode(testUser))
+        assertThatThrownBy(() -> authService.resendVerificationCode(email))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessage("Email is already verified");
 
+        verify(userRepository).findByEmail(email);
         verify(emailVerificationService, never()).createVerificationCode(any(), any());
         verify(emailService, never()).sendVerificationEmail(anyString(), anyString(), anyString());
     }
