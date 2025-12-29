@@ -18,9 +18,9 @@ public interface AuthService {
 
     boolean existsByEmail(String email);
 
-    void verifyEmail(User user, String code);
+    void verifyEmail(String email, String code);
 
-    void resendVerificationCode(User user);
+    void resendVerificationCode(String email);
 
     void sendPasswordResetCode(String email);
 

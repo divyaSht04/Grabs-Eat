@@ -1,15 +1,13 @@
 package com.nischal.backend.controller;
 
 import com.nischal.backend.dto.request.ForgotPasswordRequest;
+import com.nischal.backend.dto.request.ResendVerificationRequest;
 import com.nischal.backend.dto.request.ResetPasswordRequest;
 import com.nischal.backend.dto.request.VerifyEmailRequest;
-import com.nischal.backend.entity.User;
 import com.nischal.backend.service.AuthService;
-import com.nischal.backend.service.userdetails.CustomUserDetails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -23,10 +21,9 @@ public class EmailVerificationController {
 
     @PostMapping("/verify-email")
     public ResponseEntity<?> verifyEmail(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody VerifyEmailRequest request
     ) {
-        authService.verifyEmail(userDetails.getUser(), request.getCode());
+        authService.verifyEmail(request.getEmail(), request.getCode());
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "Email verified successfully"
@@ -35,9 +32,9 @@ public class EmailVerificationController {
 
     @PostMapping("/resend-verification")
     public ResponseEntity<?> resendVerification(
-            @AuthenticationPrincipal CustomUserDetails userDetails
+            @Valid @RequestBody ResendVerificationRequest request
     ) {
-        authService.resendVerificationCode(userDetails.getUser());
+        authService.resendVerificationCode(request.getEmail());
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "Verification code sent to your email"
