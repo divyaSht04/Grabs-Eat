@@ -1,6 +1,8 @@
 package com.nischal.backend.jwt;
 
+import com.nischal.backend.entity.User;
 import com.nischal.backend.service.TokenBlacklistService;
+import com.nischal.backend.service.userdetails.CustomUserDetails;
 import com.nischal.backend.service.userdetails.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -31,6 +33,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String userEmail;
+        final String requestPath = request.getRequestURI();
+
+        // Allow verification endpoints to bypass email verification check
+        boolean isVerificationEndpoint = requestPath.equals("/api/auth/verify-email") 
+                || requestPath.equals("/api/auth/resend-verification");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
@@ -51,6 +58,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+
+                // Check if email is verified (skip for verification endpoints)
+                if (!isVerificationEndpoint && userDetails instanceof CustomUserDetails customUserDetails) {
+                    User user = customUserDetails.getUser();
+                    if (!user.getIsEmailVerified()) {
+                        logger.warn("User attempted to access API without email verification: " + userEmail);
+                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        response.getWriter().write("{\"error\":\"Email not verified. Please verify your email to access this resource.\"}");
+                        response.setContentType("application/json");
+                        return;
+                    }
+                }
 
                 // Validate token
                 if (jwtUtil.validateToken(jwt, userDetails)) {
