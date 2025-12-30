@@ -61,4 +61,20 @@ export const authService = {
     Cookies.remove('refreshToken');
     localStorage.removeItem('user');
   },
+
+  async verifyEmail(email: string, code: string): Promise<{ success: boolean; message: string }> {
+    return apiClient.post('/auth/verify-email', { email, code });
+  },
+
+  async resendVerification(email: string): Promise<{ success: boolean; message: string }> {
+    return apiClient.post('/auth/resend-verification', { email });
+  },
+
+  async forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
+    return apiClient.post('/auth/forgot-password', { email });
+  },
+
+  async resetPassword(email: string, code: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    return apiClient.post(`/auth/reset-password?email=${encodeURIComponent(email)}`, { code, newPassword });
+  },
 };

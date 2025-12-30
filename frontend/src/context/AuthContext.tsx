@@ -11,6 +11,8 @@ interface AuthContextType {
   login: (credentials: LoginRequest) => Promise<void>;
   register: (userData: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
+  verifyEmail: (email: string, code: string) => Promise<void>;
+  resendVerification: (email: string) => Promise<void>;
   error: string | null;
   clearError: () => void;
 }
@@ -56,11 +58,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await authService.register(userData);
-
-      authService.setTokens(response.accessToken, response.refreshToken);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      setUser(response.user);
+      // Just register, don't auto-login since email needs verification
+      await authService.register(userData);
     } catch (err) {
       const axiosError = err as AxiosError<{ message: string }>;
       setError(axiosError.response?.data?.message || 'Registration failed. Please try again.');
@@ -81,6 +80,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const verifyEmail = async (email: string, code: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      await authService.verifyEmail(email, code);
+    } catch (err) {
+      const axiosError = err as AxiosError<{ message: string }>;
+      setError(axiosError.response?.data?.message || 'Email verification failed.');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resendVerification = async (email: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      await authService.resendVerification(email);
+    } catch (err) {
+      const axiosError = err as AxiosError<{ message: string }>;  
+      setError(axiosError.response?.data?.message || 'Failed to resend verification code.');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const clearError = () => setError(null);
 
   return (
@@ -92,6 +119,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         login,
         register,
         logout,
+        verifyEmail,
+        resendVerification,
         error,
         clearError,
       }}
