@@ -9,7 +9,9 @@ interface AuthContextType {
   login: (credentials: LoginRequest) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
-}
+  verifyEmail: (email: string, code: string) => Promise<void>;
+  resendVerification: (email: string) => Promise<void>;
+} 
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -53,9 +55,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (data: RegisterRequest) => {
     try {
-      const response = await authService.register(data);
-      setUser(response.user);
-      setIsAuthenticated(true);
+      await authService.register(data);
     } catch (error) {
       throw error;
     }
@@ -71,6 +71,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const verifyEmail = async (email: string, code: string) => {
+    try {
+      await authService.verifyEmail(email, code);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const resendVerification = async (email: string) => {
+    try {
+      await authService.resendVerification(email);
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -78,6 +94,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     register,
     logout,
+    verifyEmail,
+    resendVerification,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

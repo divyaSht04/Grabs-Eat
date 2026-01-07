@@ -58,7 +58,10 @@ const RegisterPage = () => {
       const { confirmPassword, ...registerData } = data;
       // Always register as CUSTOMER
       await registerUser({ ...registerData, role: Role.CUSTOMER });
-      navigate('/dashboard');
+      // Store email in sessionStorage for verification page
+      sessionStorage.setItem('pendingVerificationEmail', data.email);
+      // Redirect to email verification page with email in state
+      navigate('/verify-email', { state: { email: data.email } });
     } catch {
       // Error is handled by context
     }

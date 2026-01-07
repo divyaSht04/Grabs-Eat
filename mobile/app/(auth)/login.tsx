@@ -46,35 +46,38 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
-      style={{ flex: 1, backgroundColor: '#fef2f2' }}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
-    >
-      <ScrollView
-        ref={scrollViewRef}
-        contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 32, flexGrow: 1, justifyContent: 'center' }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-        keyboardDismissMode="on-drag"
+    <View className="flex-1 bg-red-50">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
       >
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 48, flexGrow: 1, justifyContent: 'center' }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          keyboardDismissMode="on-drag"
+        >
+          {/* Logo/Brand */}
           <View className="items-center mb-8">
-            <View className="w-16 h-16 bg-primary-600 rounded-2xl items-center justify-center mb-4">
-              <Text className="text-white text-3xl font-bold">🍽️</Text>
+            <View className="w-16 h-16 bg-red-600 rounded-2xl items-center justify-center mb-4 shadow-lg">
+              <Text className="text-3xl font-bold text-white">GE</Text>
             </View>
-            <Text className="text-3xl font-bold text-gray-800 mb-2">Welcome Back</Text>
-            <Text className="text-gray-500 text-center">Sign in to continue to GrabEat</Text>
+            <Text className="text-3xl font-bold text-gray-900">Welcome Back</Text>
+            <Text className="text-gray-600 text-center mt-2">Sign in to your GrabEat account</Text>
           </View>
 
-          <View className="bg-white rounded-2xl p-6 shadow-lg mb-6">
+          {/* Login Form */}
+          <View className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 mb-6">
             <Controller
               control={control}
               name="email"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
-                  label="Email"
-                  placeholder="Enter your email"
+                  label="Email Address"
+                  placeholder="your-email-address"
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -102,22 +105,51 @@ export default function LoginScreen() {
               )}
             />
 
+            <TouchableOpacity 
+              onPress={() => router.push('/(auth)/forgot-password')}
+              className="mb-4"
+            >
+              <Text className="text-right text-red-600 font-medium text-sm">
+                Forgot password?
+              </Text>
+            </TouchableOpacity>
+
             <Button
               title="Sign In"
               onPress={handleSubmit(onSubmit)}
               loading={isLoading}
               fullWidth
-              className="mt-2"
             />
+
+            <View className="mt-6">
+              <Text className="text-center text-sm text-gray-600">
+                Don't have an account?{' '}
+                <Text 
+                  onPress={() => router.push('/(auth)/register')}
+                  className="text-red-600 font-semibold"
+                >
+                  Sign up
+                </Text>
+              </Text>
+            </View>
           </View>
 
-          <View className="flex-row items-center justify-center">
-            <Text className="text-gray-600">Don't have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-              <Text className="text-primary-600 font-semibold">Sign Up</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Verify Email Link */}
+          <TouchableOpacity 
+            onPress={() => router.push('/(auth)/request-verification')}
+            className="mb-4"
+          >
+            <Text className="text-center text-sm text-gray-600">
+              Need to verify your email?{' '}
+              <Text className="text-red-600 font-semibold">Verify Now</Text>
+            </Text>
+          </TouchableOpacity>
+
+          <Text className="text-center text-sm text-gray-500">
+            © 2025 GrabEat. All rights reserved.
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
+    </View>
   );
 }

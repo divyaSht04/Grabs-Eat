@@ -51,7 +51,10 @@ export default function RegisterScreen() {
       setIsLoading(true);
       const { confirmPassword, ...registerData } = data;
       await register(registerData as any);
-      router.replace('/(tabs)');
+      router.push({
+        pathname: '/(auth)/verify-otp',
+        params: { email: data.email },
+      });
     } catch (error: any) {
       Alert.alert('Registration Failed', error.message || 'Unable to create account. Please try again.');
     } finally {

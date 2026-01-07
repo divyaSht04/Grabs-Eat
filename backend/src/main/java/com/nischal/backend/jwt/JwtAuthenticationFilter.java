@@ -36,8 +36,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String requestPath = request.getRequestURI();
 
         // Allow verification endpoints to bypass email verification check
-        boolean isVerificationEndpoint = requestPath.equals("/api/auth/verify-email") 
-                || requestPath.equals("/api/auth/resend-verification");
+        boolean isVerificationEndpoint = requestPath.equals("/api/v1/auth/verify-email")
+                || requestPath.equals("/api/v1/auth/resend-verification");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
