@@ -11,8 +11,7 @@ import {
 class AuthService {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     const response = await apiService.post<AuthResponse>('/auth/login', credentials);
-    
-    // Backend returns data directly, not wrapped in data property
+
     const authData = response.data || response as any;
     await this.storeAuthData(authData);
     
@@ -21,10 +20,7 @@ class AuthService {
 
   async register(data: RegisterRequest): Promise<AuthResponse> {
     const response = await apiService.post<AuthResponse>('/auth/register', data);
-    
-    // Backend returns data directly, not wrapped in data property
     const authData = response.data || response as any;
-    await this.storeAuthData(authData);
     
     return authData;
   }
@@ -76,6 +72,26 @@ class AuthService {
     await SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
     await SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
     await SecureStore.deleteItemAsync(STORAGE_KEYS.USER_DATA);
+  }
+
+  async verifyEmail(email: string, code: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiService.post('/auth/verify-email', { email, code });
+    return response.data || response as any;
+  }
+
+  async resendVerification(email: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiService.post('/auth/resend-verification', { email });
+    return response.data || response as any;
+  }
+
+  async forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiService.post('/auth/forgot-password', { email });
+    return response.data || response as any;
+  }
+
+  async resetPassword(email: string, code: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiService.post(`/auth/reset-password?email=${encodeURIComponent(email)}`, { code, newPassword });
+    return response.data || response as any;
   }
 }
 
