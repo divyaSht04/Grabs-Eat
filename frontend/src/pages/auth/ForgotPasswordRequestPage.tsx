@@ -37,7 +37,10 @@ export const ForgotPasswordRequestPage = () => {
       footer={
         <p className="text-sm">
           Remember your password?{' '}
-          <Link to="/login" className="font-semibold text-white hover:text-white/80 underline underline-offset-2">
+          <Link
+            to="/login"
+            className="font-semibold text-white hover:text-white/80 underline underline-offset-2"
+          >
             Sign in
           </Link>
         </p>
@@ -61,7 +64,7 @@ export const ForgotPasswordRequestPage = () => {
               autoComplete="email"
               required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => setEmail(e.target.value)}
               className="appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#667eea] focus:border-transparent sm:text-sm transition-all"
               placeholder="your.email@example.com"
             />

@@ -132,7 +132,7 @@ export const ResetPasswordWithOTPPage = () => {
               type={showPassword ? 'text' : 'password'}
               required
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              onChange={e => setNewPassword(e.target.value)}
               className="appearance-none block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent sm:text-sm"
               placeholder="New password"
             />
@@ -164,7 +164,7 @@ export const ResetPasswordWithOTPPage = () => {
               type={showConfirmPassword ? 'text' : 'password'}
               required
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={e => setConfirmPassword(e.target.value)}
               className="appearance-none block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#667eea] focus:border-transparent sm:text-sm transition-all"
               placeholder="Confirm password"
             />

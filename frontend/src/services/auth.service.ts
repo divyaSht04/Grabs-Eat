@@ -74,7 +74,14 @@ export const authService = {
     return apiClient.post('/auth/forgot-password', { email });
   },
 
-  async resetPassword(email: string, code: string, newPassword: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/auth/reset-password?email=${encodeURIComponent(email)}`, { code, newPassword });
+  async resetPassword(
+    email: string,
+    code: string,
+    newPassword: string
+  ): Promise<{ success: boolean; message: string }> {
+    return apiClient.post(`/auth/reset-password?email=${encodeURIComponent(email)}`, {
+      code,
+      newPassword,
+    });
   },
 };

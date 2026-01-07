@@ -47,8 +47,9 @@ export const VerifyOTPPage = () => {
       setSuccessMessage('Email verified successfully! Redirecting to login...');
       sessionStorage.removeItem('pendingVerificationEmail');
       setTimeout(() => navigate('/login'), 2000);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid verification code');
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Invalid verification code');
     }
   };
 
@@ -60,8 +61,9 @@ export const VerifyOTPPage = () => {
     try {
       await resendVerification(email);
       setSuccessMessage('New verification code sent! Check your email.');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to resend code');
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to resend code');
     } finally {
       setResendLoading(false);
     }

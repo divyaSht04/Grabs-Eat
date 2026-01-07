@@ -100,7 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setError(null);
       await authService.resendVerification(email);
     } catch (err) {
-      const axiosError = err as AxiosError<{ message: string }>;  
+      const axiosError = err as AxiosError<{ message: string }>;
       setError(axiosError.response?.data?.message || 'Failed to resend verification code.');
       throw err;
     } finally {
