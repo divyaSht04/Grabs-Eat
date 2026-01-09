@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
 import { Button, FormField } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
+import { Role } from '../../types/auth.types';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -16,15 +17,20 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login, isLoading, error, clearError, isAuthenticated } = useAuth();
+  const { login, isLoading, error, clearError, isAuthenticated, user } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard', { replace: true });
+    if (isAuthenticated && user) {
+      // Redirect admin users to admin dashboard
+      if (user.role === Role.OWNER || user.role === Role.STAFF) {
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, user, navigate]);
 
   const {
     register,
@@ -38,7 +44,7 @@ const LoginPage = () => {
     try {
       clearError();
       await login(data);
-      navigate('/dashboard');
+      // Navigation will be handled by the useEffect above
     } catch {
       // Error is handled by context
     }
