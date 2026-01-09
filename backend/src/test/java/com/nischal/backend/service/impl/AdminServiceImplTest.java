@@ -8,6 +8,7 @@ import com.nischal.backend.entity.User;
 import com.nischal.backend.exception.BadRequestException;
 import com.nischal.backend.exception.ResourceNotFoundException;
 import com.nischal.backend.mapper.UserMapper;
+import com.nischal.backend.repository.EmailVerificationRepository;
 import com.nischal.backend.repository.UserRepository;
 import com.nischal.backend.service.UserService;
 import com.nischal.backend.service.util.PaginationHelper;
@@ -45,6 +46,9 @@ class AdminServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private EmailVerificationRepository emailVerificationRepository;
 
     @Mock
     private UserService userService;
@@ -536,6 +540,7 @@ class AdminServiceImplTest {
             // Arrange
             when(userService.getUserById(1L)).thenReturn(staffUser);
             doNothing().when(validationHelper).validateIsStaffMember(staffUser);
+            doNothing().when(emailVerificationRepository).deleteByUser(staffUser);
             doNothing().when(userRepository).delete(staffUser);
 
             // Act
@@ -544,6 +549,7 @@ class AdminServiceImplTest {
             // Assert
             verify(userService, times(1)).getUserById(1L);
             verify(validationHelper, times(1)).validateIsStaffMember(staffUser);
+            verify(emailVerificationRepository, times(1)).deleteByUser(staffUser);
             verify(userRepository, times(1)).delete(staffUser);
         }
 
@@ -559,6 +565,7 @@ class AdminServiceImplTest {
                     .isInstanceOf(ResourceNotFoundException.class)
                     .hasMessageContaining("User not found with id: 999");
 
+            verify(emailVerificationRepository, never()).deleteByUser(any());
             verify(userRepository, never()).delete(any());
         }
 
@@ -575,6 +582,7 @@ class AdminServiceImplTest {
                     .isInstanceOf(BadRequestException.class)
                     .hasMessageContaining("User is not a staff member");
 
+            verify(emailVerificationRepository, never()).deleteByUser(any());
             verify(userRepository, never()).delete(any());
         }
     }

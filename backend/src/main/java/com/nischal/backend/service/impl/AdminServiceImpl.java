@@ -7,6 +7,7 @@ import com.nischal.backend.entity.Role;
 import com.nischal.backend.entity.User;
 import com.nischal.backend.exception.ResourceNotFoundException;
 import com.nischal.backend.mapper.UserMapper;
+import com.nischal.backend.repository.EmailVerificationRepository;
 import com.nischal.backend.repository.UserRepository;
 import com.nischal.backend.service.AdminService;
 import com.nischal.backend.service.UserService;
@@ -29,6 +30,7 @@ public class AdminServiceImpl implements AdminService {
 
     // Dependency Injection of abstractions (interfaces and helpers)
     private final UserRepository userRepository;
+    private final EmailVerificationRepository emailVerificationRepository;
     private final UserService userService;
     private final UserMapper userMapper;
     private final ValidationHelper validationHelper;
@@ -100,6 +102,10 @@ public class AdminServiceImpl implements AdminService {
         // Retrieve and validate user
         User user = userService.getUserById(id);
         validationHelper.validateIsStaffMember(user);
+        
+        // Delete all related email verifications first to avoid foreign key constraint violation
+        log.debug("Deleting email verifications for user: {}", id);
+        emailVerificationRepository.deleteByUser(user);
         
         // Delete user
         userRepository.delete(user);
