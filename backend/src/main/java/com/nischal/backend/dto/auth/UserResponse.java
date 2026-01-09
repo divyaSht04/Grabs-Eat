@@ -22,4 +22,5 @@ public class UserResponse {
     private Boolean isActive;
     private Boolean isEmailVerified;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }
