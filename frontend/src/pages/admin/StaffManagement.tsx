@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { UserPlus, Mail, Phone, Lock, User, Trash2 } from 'lucide-react';
 import { Role } from '../../types/auth.types';
 import { adminService } from '../../services/admin.service';
@@ -40,11 +40,7 @@ const StaffManagement = () => {
   const [roleFilter, setRoleFilter] = useState<Role | 'ALL'>('ALL');
 
   // Fetch staff members
-  useEffect(() => {
-    fetchStaff();
-  }, [currentPage, roleFilter]);
-
-  const fetchStaff = async () => {
+  const fetchStaff = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -75,7 +71,11 @@ const StaffManagement = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, roleFilter, pageSize]);
+
+  useEffect(() => {
+    fetchStaff();
+  }, [fetchStaff]);
 
   const handleDelete = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this staff member?')) {
@@ -87,8 +87,9 @@ const StaffManagement = () => {
       setSuccess('Staff member deleted successfully');
       fetchStaff();
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete staff member');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to delete staff member');
     }
   };
 
@@ -151,8 +152,11 @@ const StaffManagement = () => {
         setShowAddForm(false);
         setSuccess(null);
       }, 2000);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to register staff member. Please try again.');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(
+        error.response?.data?.message || 'Failed to register staff member. Please try again.'
+      );
     } finally {
       setIsSubmitting(false);
     }

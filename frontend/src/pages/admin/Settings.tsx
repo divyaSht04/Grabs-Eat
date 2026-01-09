@@ -62,8 +62,11 @@ const Settings = () => {
 
       setProfileSuccess('Profile updated successfully!');
       setTimeout(() => setProfileSuccess(null), 3000);
-    } catch (err: any) {
-      setProfileError(err.response?.data?.message || 'Failed to update profile. Please try again.');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setProfileError(
+        error.response?.data?.message || 'Failed to update profile. Please try again.'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -115,9 +118,10 @@ const Settings = () => {
         confirmPassword: '',
       });
       setTimeout(() => setPasswordSuccess(null), 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       setPasswordError(
-        err.response?.data?.message ||
+        error.response?.data?.message ||
           'Failed to change password. Please check your current password.'
       );
     } finally {

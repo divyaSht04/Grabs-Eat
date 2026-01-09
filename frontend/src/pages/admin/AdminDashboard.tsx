@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Users, Package, ShoppingBag, TrendingUp } from 'lucide-react';
 
 interface DashboardStats {
@@ -9,22 +9,13 @@ interface DashboardStats {
 }
 
 const AdminDashboard = () => {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalStaff: 0,
-    totalOrders: 0,
-    totalMenuItems: 0,
-    revenue: 0,
+  // TODO: Fetch actual stats from API
+  const [stats] = useState<DashboardStats>({
+    totalStaff: 12,
+    totalOrders: 247,
+    totalMenuItems: 48,
+    revenue: 15420,
   });
-
-  useEffect(() => {
-    // TODO: Fetch actual stats from API
-    setStats({
-      totalStaff: 12,
-      totalOrders: 247,
-      totalMenuItems: 48,
-      revenue: 15420,
-    });
-  }, []);
 
   const statCards = [
     {
@@ -97,19 +88,23 @@ const AdminDashboard = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Recent Orders</h2>
           <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map(order => (
+            {[
+              { id: 1, amount: 35.99 },
+              { id: 2, amount: 52.5 },
+              { id: 3, amount: 28.75 },
+              { id: 4, amount: 41.2 },
+              { id: 5, amount: 19.99 },
+            ].map(order => (
               <div
-                key={order}
+                key={order.id}
                 className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
               >
                 <div>
-                  <p className="font-medium text-gray-800">Order #{1000 + order}</p>
+                  <p className="font-medium text-gray-800">Order #{1000 + order.id}</p>
                   <p className="text-sm text-gray-500">Customer Name</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium text-gray-800">
-                    ${(Math.random() * 50 + 10).toFixed(2)}
-                  </p>
+                  <p className="font-medium text-gray-800">${order.amount.toFixed(2)}</p>
                   <span className="inline-block px-2 py-1 text-xs font-medium text-green-600 bg-green-50 rounded-full">
                     Completed
                   </span>
