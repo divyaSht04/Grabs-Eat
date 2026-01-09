@@ -117,7 +117,8 @@ const Settings = () => {
       setTimeout(() => setPasswordSuccess(null), 3000);
     } catch (err: any) {
       setPasswordError(
-        err.response?.data?.message || 'Failed to change password. Please check your current password.'
+        err.response?.data?.message ||
+          'Failed to change password. Please check your current password.'
       );
     } finally {
       setIsSubmitting(false);
@@ -162,9 +163,7 @@ const Settings = () => {
           {/* Profile Tab */}
           {activeTab === 'profile' && (
             <form onSubmit={handleProfileSubmit} className="max-w-2xl">
-              <h2 className="text-xl font-bold text-gray-800 mb-6">
-                Update Profile Information
-              </h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-6">Update Profile Information</h2>
 
               {profileError && (
                 <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -228,9 +227,7 @@ const Settings = () => {
           {/* Password Tab */}
           {activeTab === 'password' && (
             <form onSubmit={handlePasswordSubmit} className="max-w-2xl">
-              <h2 className="text-xl font-bold text-gray-800 mb-6">
-                Change Password
-              </h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-6">Change Password</h2>
 
               {passwordError && (
                 <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">

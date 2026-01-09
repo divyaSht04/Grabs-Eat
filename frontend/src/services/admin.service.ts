@@ -8,10 +8,9 @@ import type {
 import type { Role } from '../types/auth.types';
 
 export const adminService = {
-
   async getAllStaff(params?: PaginationParams): Promise<PageResponse<StaffMember>> {
     const queryParams = new URLSearchParams();
-    
+
     if (params?.page !== undefined) queryParams.append('page', params.page.toString());
     if (params?.size !== undefined) queryParams.append('size', params.size.toString());
     if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
@@ -21,12 +20,9 @@ export const adminService = {
     return apiClient.get<PageResponse<StaffMember>>(url);
   },
 
-  async getStaffByRole(
-    role: Role,
-    params?: PaginationParams
-  ): Promise<PageResponse<StaffMember>> {
+  async getStaffByRole(role: Role, params?: PaginationParams): Promise<PageResponse<StaffMember>> {
     const queryParams = new URLSearchParams();
-    
+
     if (params?.page !== undefined) queryParams.append('page', params.page.toString());
     if (params?.size !== undefined) queryParams.append('size', params.size.toString());
     if (params?.sortBy) queryParams.append('sortBy', params.sortBy);

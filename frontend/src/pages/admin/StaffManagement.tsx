@@ -92,9 +92,7 @@ const StaffManagement = () => {
     }
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -108,12 +106,7 @@ const StaffManagement = () => {
     setSuccess(null);
 
     // Validation
-    if (
-      !formData.fullName ||
-      !formData.email ||
-      !formData.phoneNumber ||
-      !formData.password
-    ) {
+    if (!formData.fullName || !formData.email || !formData.phoneNumber || !formData.password) {
       setError('All fields are required');
       return;
     }
@@ -149,10 +142,10 @@ const StaffManagement = () => {
         confirmPassword: '',
         role: Role.STAFF,
       });
-      
+
       // Refresh staff list
       fetchStaff();
-      
+
       // Hide form after success
       setTimeout(() => {
         setShowAddForm(false);
@@ -172,10 +165,7 @@ const StaffManagement = () => {
           <h1 className="text-3xl font-bold text-gray-800">Staff Management</h1>
           <p className="text-gray-600 mt-2">Manage your staff members</p>
         </div>
-        <Button
-          onClick={() => setShowAddForm(!showAddForm)}
-          variant="primary"
-        >
+        <Button onClick={() => setShowAddForm(!showAddForm)} variant="primary">
           <UserPlus size={20} />
           Add Staff Member
         </Button>
@@ -184,9 +174,7 @@ const StaffManagement = () => {
       {/* Add Staff Form */}
       {showAddForm && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-800 mb-6">
-            Register New Staff Member
-          </h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-6">Register New Staff Member</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
@@ -282,11 +270,7 @@ const StaffManagement = () => {
               >
                 {isSubmitting ? 'Registering...' : 'Register Staff'}
               </Button>
-              <Button
-                type="button"
-                onClick={() => setShowAddForm(false)}
-                variant="secondary"
-              >
+              <Button type="button" onClick={() => setShowAddForm(false)} variant="secondary">
                 Cancel
               </Button>
             </div>
@@ -303,13 +287,13 @@ const StaffManagement = () => {
               Total: {totalElements} staff member{totalElements !== 1 ? 's' : ''}
             </p>
           </div>
-          
+
           {/* Role Filter */}
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium text-gray-700">Filter:</label>
             <select
               value={roleFilter}
-              onChange={(e) => {
+              onChange={e => {
                 setRoleFilter(e.target.value as Role | 'ALL');
                 setCurrentPage(0);
               }}
@@ -334,11 +318,8 @@ const StaffManagement = () => {
         ) : (
           <>
             <div className="divide-y divide-gray-200">
-              {staffList.map((staff) => (
-                <div
-                  key={staff.id}
-                  className="p-6 hover:bg-gray-50 transition-colors"
-                >
+              {staffList.map(staff => (
+                <div key={staff.id} className="p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-800">{staff.fullName}</h3>
@@ -360,9 +341,7 @@ const StaffManagement = () => {
                       </span>
                       <span
                         className={`px-3 py-1 text-xs font-medium rounded-full ${
-                          staff.isActive
-                            ? 'bg-green-100 text-green-600'
-                            : 'bg-red-100 text-red-600'
+                          staff.isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
                         }`}
                       >
                         {staff.isActive ? 'Active' : 'Inactive'}
@@ -376,7 +355,7 @@ const StaffManagement = () => {
                       >
                         {staff.isEmailVerified ? 'Verified' : 'Unverified'}
                       </span>
-                      
+
                       {/* Action buttons - only show for OWNER */}
                       {user?.role === Role.OWNER && (
                         <div className="flex gap-2">
@@ -404,16 +383,14 @@ const StaffManagement = () => {
                 </div>
                 <div className="flex gap-2">
                   <Button
-                    onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
+                    onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
                     disabled={currentPage === 0}
                     variant="secondary"
                   >
                     Previous
                   </Button>
                   <Button
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))
-                    }
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
                     disabled={currentPage === totalPages - 1}
                     variant="primary"
                   >

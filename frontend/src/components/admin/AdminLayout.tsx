@@ -1,13 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Settings, 
-  LogOut,
-  Menu,
-  X
-} from 'lucide-react';
+import { LayoutDashboard, Users, Settings, LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
 const AdminLayout = () => {
@@ -30,16 +23,14 @@ const AdminLayout = () => {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside 
+      <aside
         className={`${
           isSidebarOpen ? 'w-64' : 'w-20'
         } bg-white border-r border-gray-200 transition-all duration-300 flex flex-col`}
       >
         {/* Sidebar Header */}
         <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-          {isSidebarOpen && (
-            <h1 className="text-xl font-bold text-gray-800">GrabEat Admin</h1>
-          )}
+          {isSidebarOpen && <h1 className="text-xl font-bold text-gray-800">GrabEat Admin</h1>}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -50,19 +41,20 @@ const AdminLayout = () => {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2">
-          {navItems.map((item) => {
+          {navItems.map(item => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-            
+
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-lg transition-colors
-                  ${isActive 
-                    ? 'bg-orange-50 text-orange-600 font-medium' 
-                    : 'text-gray-600 hover:bg-gray-50'
+                  ${
+                    isActive
+                      ? 'bg-orange-50 text-orange-600 font-medium'
+                      : 'text-gray-600 hover:bg-gray-50'
                   }
                 `}
               >

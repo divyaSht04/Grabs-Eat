@@ -70,7 +70,7 @@ const AdminDashboard = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {statCards.map((stat) => {
+        {statCards.map(stat => {
           const Icon = stat.icon;
           return (
             <div
@@ -79,12 +79,8 @@ const AdminDashboard = () => {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">
-                    {stat.title}
-                  </p>
-                  <p className="text-3xl font-bold text-gray-800">
-                    {stat.value}
-                  </p>
+                  <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
+                  <p className="text-3xl font-bold text-gray-800">{stat.value}</p>
                 </div>
                 <div className={`${stat.bgLight} p-3 rounded-lg`}>
                   <Icon className={stat.textColor} size={24} />
@@ -101,7 +97,7 @@ const AdminDashboard = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Recent Orders</h2>
           <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map((order) => (
+            {[1, 2, 3, 4, 5].map(order => (
               <div
                 key={order}
                 className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
@@ -129,21 +125,15 @@ const AdminDashboard = () => {
           <div className="space-y-3">
             <button className="w-full text-left p-4 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors">
               <p className="font-medium text-orange-600">Add New Staff Member</p>
-              <p className="text-sm text-gray-600 mt-1">
-                Register a new staff account
-              </p>
+              <p className="text-sm text-gray-600 mt-1">Register a new staff account</p>
             </button>
             <button className="w-full text-left p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
               <p className="font-medium text-blue-600">View All Orders</p>
-              <p className="text-sm text-gray-600 mt-1">
-                Manage and track orders
-              </p>
+              <p className="text-sm text-gray-600 mt-1">Manage and track orders</p>
             </button>
             <button className="w-full text-left p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors">
               <p className="font-medium text-purple-600">Manage Menu</p>
-              <p className="text-sm text-gray-600 mt-1">
-                Add or edit menu items
-              </p>
+              <p className="text-sm text-gray-600 mt-1">Add or edit menu items</p>
             </button>
           </div>
         </div>
